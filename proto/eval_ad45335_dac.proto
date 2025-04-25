@@ -9,6 +9,16 @@ service DAC {
   rpc SendVoltage (Voltage) returns (VoltageReply) {}
   rpc SendChannelConfig (ChannelConfig) returns (ChannelConfigReply) {}
   rpc SendCompleteConfig (Config) returns (ConfigReply) {}
+  rpc StoreConfig(StoredConfigRequest) returns (StoredConfig) {}
+  rpc GetConfig(GetStoredConfigRequest) returns (StoredConfig) {}
+}
+
+message StoredConfigRequest {
+  string name = 1;
+}
+
+message GetStoredConfigRequest {
+  string uuid = 1;
 }
 
 message Voltage {
