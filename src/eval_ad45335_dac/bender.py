@@ -3,7 +3,9 @@ from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayo
 
 from control_box import ChannelsControlBox
 from voltage_channel import VoltageChannel
+from eval_ad45335_dac.eval_ad45335_dac import Channel
 
+from state import state
 class BenderControlWidget(QGroupBox):
     def __init__(self, name: str, voltage_channels: list):
         super().__init__("Bending")
@@ -11,6 +13,8 @@ class BenderControlWidget(QGroupBox):
         super().setMaximumHeight(350)
         super().setMinimumWidth(100)
         super().setMaximumWidth(100)
+        
+        self.state = state
 
         self.voltage_channels = voltage_channels
         self.controlBox = BenderControlBox(name, voltage_channels)
@@ -86,18 +90,55 @@ class BenderControlWidget(QGroupBox):
         bim_ch = self.voltage_channels[self.controlBox.bim_box.currentIndex()]
         bim_voltage = -100.0 * (float(self.slider.sliderPosition()) / 999.0)
         bim_ch.set_voltage(bim_voltage)
+        
+    
+    def update_from_state(self):
+        plus_ch = self.state.config.quadrupole_bender.channels.bend_ions_plus_channel
+        minus_ch = self.state.config.quadrupole_bender.channels.bend_ions_minus_channel
+
+        if plus_ch:
+            idx = self.controlBox.bip_box.findText(f"channel {plus_ch.port} on {plus_ch.type}")
+            if idx >= 0:
+                self.controlBox.bip_box.setCurrentIndex(idx)
+
+        if minus_ch:
+            idx = self.controlBox.bim_box.findText(f"channel {minus_ch.port} on {minus_ch.type}")
+            if idx >= 0:
+                self.controlBox.bim_box.setCurrentIndex(idx)
 
 
 class BenderControlBox(ChannelsControlBox):
-    def __init__(self, name: str, voltage_channels: list):
+    def __init__(self, name: str, voltage_channels: list[Channel]):
         super().__init__(name, voltage_channels)
+        self.state = state
+        self.bip_box = self._add_channel_combo(
+            label="Bend ions +: ",
+            row=0,
+            voltage_channels=voltage_channels,
+            on_changed=self.on_bip_box_changed
+        )
 
-        self.options_grid.addWidget(QLabel("Bend ions +: "), 0, 0)
-        self.bip_box = QComboBox()
-        self.bip_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.bip_box, 0, 1)
+        self.bim_box = self._add_channel_combo(
+            label="Bend ions -: ",
+            row=1,
+            voltage_channels=voltage_channels,
+            on_changed=self.on_bim_box_changed
+        )
 
-        self.options_grid.addWidget(QLabel("Bend ions -: "), 1, 0)
-        self.bim_box = QComboBox()
-        self.bim_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.bim_box, 1, 1)
+    def _add_channel_combo(self, label, row, voltage_channels, on_changed):
+        self.options_grid.addWidget(QLabel(label), row, 0)
+        combo = QComboBox()
+        for vch in voltage_channels:
+            display_text = f"channel {vch.port} on {vch.type}"
+            combo.addItem(display_text, vch)
+        self.options_grid.addWidget(combo, row, 1)
+        combo.currentIndexChanged.connect(on_changed)
+        return combo
+
+    def on_bim_box_changed(self, index):
+        self.state.config.quadrupole_bender.channels.bend_ions_minus_channel = self.bim_box.currentData()
+        print(self.state.config)
+
+    def on_bip_box_changed(self, index):
+        self.state.config.quadrupole_bender.channels.bend_ions_plus_channel = self.bip_box.currentData()
+        print(self.state.config)

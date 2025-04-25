@@ -62,6 +62,7 @@ class DACControl():
         assert(abs(voltage) <= 100.0)
         assert((channel.port >= 0) and (channel.port < 32))
         
+        
         ## TODO: Make this use protobuf too instead of json? 
         command_contents = {"command": "SETV", "channel": channel.port, "voltage": voltage}
         msg = json.dumps(command_contents)

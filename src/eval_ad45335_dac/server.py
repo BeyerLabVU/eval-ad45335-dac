@@ -24,8 +24,8 @@ from state import State, state
 
 class DacService(DacBase):    
     def __init__(self):
-        self.state = state()
-        
+        self.state = state
+
     
     async def send_voltage(self, message: Voltage) -> VoltageReply:
         response = VoltageReply(wattage=message.voltage * 2)
