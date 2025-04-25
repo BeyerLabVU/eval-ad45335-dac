@@ -9,11 +9,11 @@ service DAC {
   rpc SendVoltage (Voltage) returns (VoltageReply) {}
   rpc SendChannelConfig (ChannelConfig) returns (ChannelConfigReply) {}
   rpc SendCompleteConfig (Config) returns (ConfigReply) {}
-  rpc StoreConfig(StoredConfigRequest) returns (StoredConfig) {}
+  rpc StoreConfig(StoreConfigRequest) returns (StoredConfig) {}
   rpc GetConfig(GetStoredConfigRequest) returns (StoredConfig) {}
 }
 
-message StoredConfigRequest {
+message StoreConfigRequest {
   string name = 1;
 }
 
