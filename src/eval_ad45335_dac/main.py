@@ -1,19 +1,65 @@
 import asyncio
+import datetime
 import logging
+import os
 import signal
+import time
+import uuid
+import betterproto2
 from grpclib.server import Server
-from eval_ad45335_dac.eval_ad45335_dac import DacBase, Voltage, VoltageReply
-
+from eval_ad45335_dac.eval_ad45335_dac import DacBase, Voltage, VoltageReply, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
+from eval_ad45335_dac.eval_ad45335_dac import StoredConfigRequest, GetStoredConfigRequest
 import tomllib
 
-# Replace this with your service, e.g. HelloWorldService(HelloWorldBase)
 class DacService(DacBase):    
-    async def send_voltage(self, input: Voltage) -> VoltageReply:
-        # logger.info(f"Received request: {message}")
-        response = VoltageReply(message=input.voltage * 2)
-        # logger.info(f"Sending response: {response}")
+    def __init__(self):
+        self.config: Config = Config()
+    
+    async def send_voltage(self, message: Voltage) -> VoltageReply:
+        response = VoltageReply(wattage=message.voltage * 2)
         return response
+    
+    async def send_channel_config(self, message: ChannelConfig) -> ChannelConfigReply:
+        logger.info(f"Received channel configuration")
+        logger.info(message.pre_stack_deflector_channels.x_minus_channel.type)
+        return ChannelConfigReply(success=True, message="Channel configuration updated successfully")
+    
+    async def send_complete_config(self, message: Config) -> ConfigReply:
+        logger.info(f"Received complete configuration")
+        logger.info(message)
+        self.config = message
+        return ConfigReply(success=True, message="Complete configuration updated successfully")
+    
+    async def store_config(self, message: StoredConfigRequest) -> StoredConfig:
+        # time.time() returns the current unix epoch as a float, where the part after the decimal point is smaller than a second.
+        # We multiply by 1e3 to get the current unix millisecond epoch as integer
+        ts = int(time.time()  * 1e3)
+        
+        stored_config = StoredConfig(
+            timestamp=ts,
+            name=message.name,
+            uuid=str(uuid.uuid4()),
+            config=self.config
+        )
+        
+        # ensure there is a /stored_configs folder:
+        os.makedirs("stored_configs", exist_ok=True)
+        file_path = f"stored_configs/{stored_config.uuid}"
+        # wb = write binary
+        with open(file_path, "wb") as f:
+            f.write(bytes(stored_config))
+        
+        return stored_config
+    
+    async def get_config(self, message: GetStoredConfigRequest) -> StoredConfig:
+    
+        config = StoredConfig()
+        with open(f"stored_configs/{message.uuid}", "rb") as f:
+            config = StoredConfig.parse(config, data=f.read())
+        
+        return config
        
+    
 
 async def main():
     # Replace this list with your actual service implementations
