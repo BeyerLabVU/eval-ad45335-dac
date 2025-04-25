@@ -5,15 +5,27 @@ import os
 import signal
 import time
 import uuid
-import betterproto2
 from grpclib.server import Server
 from eval_ad45335_dac.eval_ad45335_dac import DacBase, Voltage, VoltageReply, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
 from eval_ad45335_dac.eval_ad45335_dac import StoredConfigRequest, GetStoredConfigRequest
 import tomllib
 
+import sys
+from PySide6.QtCore import QTimer, QObject, QThread, Signal
+from PySide6.QtGui import QPainter, QColor, QPen
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QLabel, QWidget, QSlider, QPushButton, QHBoxLayout, QGroupBox, QSpacerItem, QSizePolicy, QTabWidget, QGridLayout, QComboBox, QScrollArea, QFormLayout
+
+from deflector import *
+from lens import *
+from bender import *
+from arduino_DAC_control import *
+from gui import *
+from state import State, state
+
 class DacService(DacBase):    
     def __init__(self):
-        self.config: Config = Config()
+        self.state = state()
+        
     
     async def send_voltage(self, message: Voltage) -> VoltageReply:
         response = VoltageReply(wattage=message.voltage * 2)
@@ -27,7 +39,7 @@ class DacService(DacBase):
     async def send_complete_config(self, message: Config) -> ConfigReply:
         logger.info(f"Received complete configuration")
         logger.info(message)
-        self.config = message
+        self.state.config = message
         return ConfigReply(success=True, message="Complete configuration updated successfully")
     
     async def store_config(self, message: StoredConfigRequest) -> StoredConfig:
@@ -39,7 +51,7 @@ class DacService(DacBase):
             timestamp=ts,
             name=message.name,
             uuid=str(uuid.uuid4()),
-            config=self.config
+            config=self.state.config
         )
         
         # ensure there is a /stored_configs folder:
@@ -104,3 +116,4 @@ configuration = config.get("configuration", {})
 
 if __name__ == '__main__':
     asyncio.run(main())
+    

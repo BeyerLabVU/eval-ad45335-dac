@@ -1,0 +1,194 @@
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QGroupBox, QComboBox, QLabel, QSlider, QHBoxLayout, QPushButton
+
+from control_box import *
+from joystick import *
+
+class DeflectionControlBox(ChannelsControlBox):
+    def __init__(self, name: str, voltage_channels: list):
+        super().__init__(name, voltage_channels)
+
+        self.options_grid.addWidget(QLabel("x+ ch: "), 0, 0)
+        self.xp_box = QComboBox()
+        self.xp_box.addItems([vch.name for vch in voltage_channels])
+        self.options_grid.addWidget(self.xp_box, 0, 1)
+
+        self.options_grid.addWidget(QLabel("x- ch: "), 1, 0)
+        self.xm_box = QComboBox()
+        self.xm_box.addItems([vch.name for vch in voltage_channels])
+        self.options_grid.addWidget(self.xm_box, 1, 1)
+
+        self.options_grid.addWidget(QLabel("z+ ch: "), 2, 0)
+        self.zp_box = QComboBox()
+        self.zp_box.addItems([vch.name for vch in voltage_channels])
+        self.options_grid.addWidget(self.zp_box, 2, 1)
+
+        self.options_grid.addWidget(QLabel("z- ch: "), 3, 0)
+        self.zm_box = QComboBox()
+        self.zm_box.addItems([vch.name for vch in voltage_channels])
+        self.options_grid.addWidget(self.zm_box, 3, 1)
+
+
+class DeflectionAngleWidget(QGroupBox):
+    def __init__(self, name: str, voltage_channels: list):
+        super().__init__("Deflection Angle")
+        super().setMinimumHeight(350)
+        super().setMaximumHeight(350)
+        super().setMinimumWidth(200)
+        super().setMaximumWidth(200)
+
+        self.voltage_channels = voltage_channels
+        self.controlBox = DeflectionControlBox(name, self.voltage_channels)
+
+        # Initialize pygame for joystick handling
+        # pygame.init()
+        # pygame.joystick.init()
+        # self.joystick = None
+        # if pygame.joystick.get_count() > 0:
+        #     self.joystick = pygame.joystick.Joystick(0)
+        #     self.joystick.init()
+        self.joystick = None
+
+        # Create UI elements
+        self.name_label = QLabel(name)
+
+        self.label = QLabel("Deflection Setting: (0.000, 0.000)")
+        self.circle_widget = JoystickCircleWidget(self.label)
+
+        self.dead_zone_label = QLabel("Dead Zone: 0.2")
+        self.dead_zone_slider = QSlider(Qt.Horizontal)
+        self.dead_zone_slider.setMinimum(0)
+        self.dead_zone_slider.setMaximum(100)
+        self.dead_zone_slider.setValue(20)
+        self.dead_zone_slider.setSingleStep(1)
+        self.dead_zone_slider.valueChanged.connect(self.update_dead_zone)
+        self.dead_zone_slider.setMinimumWidth(100)
+
+        self.sensitivity_label = QLabel("Sensitivity:   1.00")
+        self.sensitivity_slider = QSlider(Qt.Horizontal)
+        self.sensitivity_slider.setMinimum(10)  # 0.1
+        self.sensitivity_slider.setMaximum(300)  # 3.0
+        self.sensitivity_slider.setValue(100)  # Default to 1.0
+        self.sensitivity_slider.valueChanged.connect(self.update_sensitivity)
+        self.sensitivity_slider.setMinimumWidth(100)
+
+        self.lock_button = QPushButton("Lock Angle")
+        self.lock_button.setCheckable(True)
+        self.lock_button.toggled.connect(self.toggle_lock_position)
+
+        # Connect joystick wheel signal to sensitivity slider adjustment
+        self.circle_widget.wheelScrolled.connect(self.adjust_sensitivity_slider)
+
+        # Layout setup
+        layout = QVBoxLayout()
+        layout.setSpacing(5)
+        layout.setContentsMargins(5, 5, 5, 5)
+
+        layout.addWidget(self.name_label)
+        layout.addWidget(self.circle_widget, stretch=1)
+        layout.addWidget(self.label)
+
+        slider_layout = QHBoxLayout()
+        slider_layout.addWidget(self.dead_zone_label)
+        slider_layout.addWidget(self.dead_zone_slider)
+        layout.addLayout(slider_layout)
+
+        sensitivity_layout = QHBoxLayout()
+        sensitivity_layout.addWidget(self.sensitivity_label)
+        sensitivity_layout.addWidget(self.sensitivity_slider)
+        layout.addLayout(sensitivity_layout)
+
+        layout.addWidget(self.lock_button)
+        self.setLayout(layout)
+
+        # Timer to poll joystick data
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.poll_joystick)
+        self.timer.start(16)  # ~60 FPS
+
+        self.last_time = pygame.time.get_ticks()
+        self.dead_zone = 0.2
+        self.sensitivity = 1.0
+
+    def adjust_sensitivity_slider(self, delta):
+        """Adjust the sensitivity slider based on the mouse wheel."""
+        new_value = self.sensitivity_slider.value() + delta
+        self.sensitivity_slider.setValue(max(self.sensitivity_slider.minimum(), min(self.sensitivity_slider.maximum(), new_value)))
+
+    def update_dead_zone(self, value):
+        self.dead_zone = value / 100.0
+        self.dead_zone_label.setText(f"Dead Zone: {value / 100.0:2.2f}")
+
+    def update_sensitivity(self, value):
+        self.sensitivity = value
+        self.circle_widget.wheel_sensitivity = self.sensitivity / 10
+        self.sensitivity_label.setText(f"Sensitivity: {self.sensitivity / 10:6.2f}")
+
+    def toggle_lock_position(self, checked):
+        if checked:
+            self.circle_widget.lock_position()
+            self.lock_button.setText("Unlock Angle")
+        else:
+            self.circle_widget.unlock_position()
+            self.lock_button.setText("Lock Angle")
+
+    def poll_joystick(self):
+        if self.joystick is None:
+            return
+
+        pygame.event.pump()
+
+        x = self.joystick.get_axis(0)  # Left joystick X
+        y = self.joystick.get_axis(1)  # Left joystick Y
+        trigger = self.joystick.get_axis(2)  # Left trigger
+
+        # Normalize joystick values to 1
+        magnitude = (x ** 2 + y ** 2) ** 0.5
+        if magnitude > 1.0:
+            x /= magnitude
+            y /= magnitude
+
+        # Apply dead zone
+        if abs(x) < self.dead_zone:
+            x = 0
+        if abs(y) < self.dead_zone:
+            y = 0
+
+        # Calculate time delta for integral scaling
+        current_time = pygame.time.get_ticks()
+        delta_time = (current_time - self.last_time) / 1000.0  # Convert ms to seconds
+        self.last_time = current_time
+
+        # Scale joystick input to movement speed with sensitivity
+        speed = 100 * self.sensitivity  # Pixels per second at max joystick deflection
+        dx = x * speed * delta_time
+        dy = -y * speed * delta_time  # Invert Y-axis
+
+        # Update circle position
+        self.circle_widget.update_position(dx, dy)
+
+        # Update trigger control
+        if self.joystick.get_numaxes() > 2:
+            normalized_trigger = int((trigger + 1) / 2 * 100)  # Normalize to 0-100
+            main_widget.trigger_control.set_trigger_value(normalized_trigger)
+
+    def update_voltages(self):
+        xp_ch = self.voltage_channels[self.controlBox.xp_box.currentIndex()]
+        xm_ch = self.voltage_channels[self.controlBox.xm_box.currentIndex()]
+        zp_ch = self.voltage_channels[self.controlBox.zp_box.currentIndex()]
+        zm_ch = self.voltage_channels[self.controlBox.zm_box.currentIndex()]
+
+        xp_voltage =  100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
+        xm_voltage = -100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
+        zp_voltage =  100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
+        zm_voltage = -100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
+
+        xp_ch.set_voltage(xp_voltage)
+        xm_ch.set_voltage(xm_voltage)
+        zp_ch.set_voltage(zp_voltage)
+        zm_ch.set_voltage(zm_voltage)
+
+    def closeEvent(self, event):
+        # Clean up pygame resources
+        pygame.quit()
+        super().closeEvent(event)
