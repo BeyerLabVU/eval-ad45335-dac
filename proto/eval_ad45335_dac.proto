@@ -19,12 +19,11 @@ message VoltageReply {
   double wattage = 1;
 }
 
-// Channel configuration without actual settings
 message ChannelConfig {
   DeflectorChannels pre_stack_deflector_channels = 1;
-  int32 stack_einzel_channel = 2;
+  Channel stack_einzel_channel = 2;
   DeflectorChannels post_stack_deflector_channels = 3;
-  int32 horizontal_bender_einzel_channel = 4;
+  Channel horizontal_bender_einzel_channel = 4;
   QuadrupoleBenderChannels quadrupole_bender_channels = 5;
 }
 
@@ -33,7 +32,6 @@ message ChannelConfigReply {
   string message = 2;
 }
 
-// Complete configuration with both channels and settings
 message CompleteConfig {
   Controls controls = 1;
 }
@@ -43,21 +41,18 @@ message ConfigReply {
   string message = 2;
 }
 
-// Deflector channels only
 message DeflectorChannels {
-  int32 x_minus_channel = 1;
-  int32 x_plus_channel = 2;
-  int32 z_minus_channel = 3;
-  int32 z_plus_channel = 4;
+  Channel x_minus_channel = 1;
+  Channel x_plus_channel = 2;
+  Channel z_minus_channel = 3;
+  Channel z_plus_channel = 4;
 }
 
-// Quadrupole bender channels only
 message QuadrupoleBenderChannels {
-  int32 bend_ions_plus_channel = 1;
-  int32 bend_ions_minus_channel = 2;
+  Channel bend_ions_plus_channel = 1;
+  Channel bend_ions_minus_channel = 2;
 }
 
-// Original messages for complete controls
 message Controls {
   StackDeflector pre_stack_deflector = 1;
   StackEinzel stack_einzel = 2;
@@ -66,11 +61,9 @@ message Controls {
   QuadrupoleBender quadrupole_bender = 5;
 }
 
-// Modified to separate channels into their own message
 message DeflectionSetting {
   double x = 1;
   double z = 2;
-  // Channels moved to DeflectorChannels message
 }
 
 message StackDeflector {
@@ -83,15 +76,24 @@ message StackDeflector {
 
 message StackEinzel {
   int64 focus = 1;
-  int32 channel = 2;
+  Channel channel = 2;
 }
 
 message HorizontalBenderEinzel {
   int64 focus = 1;
-  int32 channel = 2;
+  Channel channel = 2;
 }
 
 message QuadrupoleBender {
   int64 bend = 1;
   QuadrupoleBenderChannels channels = 2;
+}
+
+message Channel {
+  int32 port = 1;
+  ChannelType type = 2;
+}
+
+enum ChannelType {
+  AD45335 = 0;
 }
