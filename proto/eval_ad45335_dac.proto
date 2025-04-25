@@ -6,13 +6,16 @@ package eval_ad45335_dac;
 // Introduction to gRPC: https://grpc.io/docs/what-is-grpc/introduction/
 
 service DAC {
-  rpc SendVoltage (Voltage) returns (Voltage) {}
+  rpc SendVoltage (Voltage) returns (VoltageReply) {}
 }
 
 message Voltage {
   double voltage = 1;
 }
 
+message VoltageReply {
+  double wattage = 1;
+}
 
 // syntax = "proto3";
 
