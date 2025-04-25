@@ -8,7 +8,7 @@ package eval_ad45335_dac;
 service DAC {
   rpc SendVoltage (Voltage) returns (VoltageReply) {}
   rpc SendChannelConfig (ChannelConfig) returns (ChannelConfigReply) {}
-  rpc SendCompleteConfig (CompleteConfig) returns (ConfigReply) {}
+  rpc SendCompleteConfig (Config) returns (ConfigReply) {}
 }
 
 message Voltage {
@@ -32,10 +32,6 @@ message ChannelConfigReply {
   string message = 2;
 }
 
-message CompleteConfig {
-  Controls controls = 1;
-}
-
 message ConfigReply {
   bool success = 1;
   string message = 2;
@@ -53,7 +49,14 @@ message QuadrupoleBenderChannels {
   Channel bend_ions_minus_channel = 2;
 }
 
-message Controls {
+message StoredConfig {
+  int64 timestamp = 1;  // Unix timestamp in milliseconds
+  string name = 2;
+  string uuid = 3;  
+  Config config = 4;
+}
+
+message Config {
   StackDeflector pre_stack_deflector = 1;
   StackEinzel stack_einzel = 2;
   StackDeflector post_stack_deflector = 3;
