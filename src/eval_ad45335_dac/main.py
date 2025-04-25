@@ -2,17 +2,22 @@ import asyncio
 import logging
 import signal
 from grpclib.server import Server
+from eval_ad45335_dac.eval_ad45335_dac import DacBase, Voltage, VoltageReply
+
 import tomllib
 
 # Replace this with your service, e.g. HelloWorldService(HelloWorldBase)
-class Service(Base):    
-    # Implement your business logic here
-    def __init__():
-      raise NotImplementedError() 
+class DacService(DacBase):    
+    async def send_voltage(self, input: Voltage) -> VoltageReply:
+        # logger.info(f"Received request: {message}")
+        response = VoltageReply(message=input.voltage * 2)
+        # logger.info(f"Sending response: {response}")
+        return response
+       
 
 async def main():
     # Replace this list with your actual service implementations
-    server = Server([Service()])
+    server = Server([DacService()])
     
     # We gather the port from the h2pcontrol.server.toml file by default, if we can not get that port we take a default port.
     port = configuration.get("port", 50052)

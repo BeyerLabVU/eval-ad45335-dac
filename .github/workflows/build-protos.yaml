@@ -53,8 +53,8 @@ jobs:
 
       - name: Set output dir env var
         run: |
-          echo "PKG_ROOT=python_generated_code" >> $GITHUB_ENV
-          echo "PROTO_OUT=python_generated_code/${{ steps.read_name_toml.outputs.value }}" >> $GITHUB_ENV
+          echo "PKG_ROOT=${{ steps.read_name_toml.outputs.value }}" >> $GITHUB_ENV
+          echo "PROTO_OUT=${{ steps.read_name_toml.outputs.value }}" >> $GITHUB_ENV
 
       - name: Generate Python code from proto
         id: compile_proto
