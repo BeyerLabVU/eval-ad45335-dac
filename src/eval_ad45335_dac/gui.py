@@ -106,9 +106,9 @@ class MainWidget(QWidget):
         self.control_tab.setLayout(self.top_layout)
 
     def read_config(self):
-        self.state.get_config(GetStoredConfigRequest("4419ceb0-f271-4fac-8dbe-b8663b12bbea"))
-        for widget in self.control_widgets:
-                widget.update_from_state()
+        self.state.get_config(GetStoredConfigRequest("513b4ab5-dff6-43b9-a65b-f39ae9eb4ee8"))
+        # for widget in self.control_widgets:
+        #         widget.update_from_state()
                 
 
     def start_voltage_update(self):

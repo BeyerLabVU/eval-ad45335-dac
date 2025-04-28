@@ -2,6 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
 
 from control_box import ChannelsControlBox
+from helper import bind_widget_to_state
 from voltage_channel import VoltageChannel
 from eval_ad45335_dac.eval_ad45335_dac import Channel
 
@@ -66,6 +67,15 @@ class BenderControlWidget(QGroupBox):
         self.layout.addStretch(1)
         self.layout.addWidget(self.lock_button)
         self.setLayout(self.layout)
+        
+        bind_widget_to_state(
+            self.slider.value,
+            self.slider.setValue,
+            lambda: self.state.config.quadrupole_bender,
+            "bend",
+            self.slider.valueChanged
+        )
+        
 
     def update_label(self, value):
         if not self.locked:
@@ -91,20 +101,6 @@ class BenderControlWidget(QGroupBox):
         bim_voltage = -100.0 * (float(self.slider.sliderPosition()) / 999.0)
         bim_ch.set_voltage(bim_voltage)
         
-    
-    def update_from_state(self):
-        plus_ch = self.state.config.quadrupole_bender.channels.bend_ions_plus_channel
-        minus_ch = self.state.config.quadrupole_bender.channels.bend_ions_minus_channel
-
-        if plus_ch:
-            idx = self.controlBox.bip_box.findText(f"channel {plus_ch.port} on {plus_ch.type}")
-            if idx >= 0:
-                self.controlBox.bip_box.setCurrentIndex(idx)
-
-        if minus_ch:
-            idx = self.controlBox.bim_box.findText(f"channel {minus_ch.port} on {minus_ch.type}")
-            if idx >= 0:
-                self.controlBox.bim_box.setCurrentIndex(idx)
 
 
 class BenderControlBox(ChannelsControlBox):
@@ -115,30 +111,35 @@ class BenderControlBox(ChannelsControlBox):
             label="Bend ions +: ",
             row=0,
             voltage_channels=voltage_channels,
-            on_changed=self.on_bip_box_changed
         )
 
         self.bim_box = self._add_channel_combo(
             label="Bend ions -: ",
             row=1,
             voltage_channels=voltage_channels,
-            on_changed=self.on_bim_box_changed
+        )
+        
+        bind_widget_to_state(
+            self.bip_box.currentData,
+            lambda v: self.bip_box.setCurrentIndex(self.bip_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: self.state.config.quadrupole_bender.channels,
+            "bend_ions_plus_channel",
+            self.bip_box.currentIndexChanged
+        )
+        bind_widget_to_state(
+            self.bim_box.currentData,
+            lambda v: self.bim_box.setCurrentIndex(self.bim_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: self.state.config.quadrupole_bender.channels,
+            "bend_ions_minus_channel",
+            self.bim_box.currentIndexChanged
         )
 
-    def _add_channel_combo(self, label, row, voltage_channels, on_changed):
+
+    def _add_channel_combo(self, label, row, voltage_channels):
         self.options_grid.addWidget(QLabel(label), row, 0)
         combo = QComboBox()
         for vch in voltage_channels:
             display_text = f"channel {vch.port} on {vch.type}"
             combo.addItem(display_text, vch)
         self.options_grid.addWidget(combo, row, 1)
-        combo.currentIndexChanged.connect(on_changed)
         return combo
-
-    def on_bim_box_changed(self, index):
-        self.state.config.quadrupole_bender.channels.bend_ions_minus_channel = self.bim_box.currentData()
-        print(self.state.config)
-
-    def on_bip_box_changed(self, index):
-        self.state.config.quadrupole_bender.channels.bend_ions_plus_channel = self.bip_box.currentData()
-        print(self.state.config)

@@ -4,9 +4,14 @@ from eval_ad45335_dac.eval_ad45335_dac import HorizontalBenderEinzel, StoredConf
 import os
 import time
 import uuid
+from PySide6.QtCore import QObject, Signal
 
-class State():
+class State(QObject):
+    state_changed = Signal()
+    
+    
     def __init__(self):
+      super().__init__()
       self.config = Config(
         pre_stack_deflector=StackDeflector(
           DeflectionSetting(),
@@ -31,6 +36,7 @@ class State():
         # We multiply by 1e3 to get the current unix millisecond epoch as integer
         ts = int(time.time()  * 1e3)
         
+        print(self.config)
         stored_config = StoredConfig(
             timestamp=ts,
             name=message.name,
@@ -45,7 +51,7 @@ class State():
         with open(file_path, "wb") as f:
             f.write(bytes(stored_config))
         
-        print(stored_config)
+        # print(stored_config)
         return stored_config
       
     def get_config(self, message: GetStoredConfigRequest) -> StoredConfig:
@@ -56,6 +62,7 @@ class State():
       print(self.config)
       self.config = stored_config.config
       print(self.config)
+      self.state_changed.emit()
       return stored_config
        
     
