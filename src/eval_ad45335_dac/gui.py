@@ -74,9 +74,10 @@ class MainWidget(QWidget):
     def setup_control_tab(self):
         """Setup the first tab with main control widgets."""
         self.control_widgets = [
-            # DeflectionAngleWidget("Pre-Stack Deflector", self.voltage_channels),
+            # Need to make these state_objects getters with a lambda to ensure its not an old reference when we update state
+            DeflectionAngleWidget("Pre-Stack Deflector", lambda: self.state.config.pre_stack_deflector, self.voltage_channels),
             # FocusControlWidget("Stack Einzel", self.voltage_channels),
-            # DeflectionAngleWidget("Post-Stack Deflector", self.voltage_channels),
+            DeflectionAngleWidget("Post-Stack Deflector", lambda: self.state.config.post_stack_deflector, self.voltage_channels),
             # FocusControlWidget("Horz. Bender Einzel", self.voltage_channels),
             BenderControlWidget("Quadrupole Bender", self.voltage_channels)
         ]
@@ -106,9 +107,7 @@ class MainWidget(QWidget):
         self.control_tab.setLayout(self.top_layout)
 
     def read_config(self):
-        self.state.get_config(GetStoredConfigRequest("513b4ab5-dff6-43b9-a65b-f39ae9eb4ee8"))
-        # for widget in self.control_widgets:
-        #         widget.update_from_state()
+        self.state.get_config(GetStoredConfigRequest("96448ec1-cb80-48ec-8d04-88de139bc7d3"))
                 
 
     def start_voltage_update(self):

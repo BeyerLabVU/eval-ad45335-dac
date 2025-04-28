@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
 
 from control_box import ChannelsControlBox
-from helper import bind_widget_to_state
+from helper import _add_channel_combo, bind_widget_to_state
 from voltage_channel import VoltageChannel
 from eval_ad45335_dac.eval_ad45335_dac import Channel
 
@@ -107,13 +107,15 @@ class BenderControlBox(ChannelsControlBox):
     def __init__(self, name: str, voltage_channels: list[Channel]):
         super().__init__(name, voltage_channels)
         self.state = state
-        self.bip_box = self._add_channel_combo(
+        self.bip_box = _add_channel_combo(
+            self.options_grid,
             label="Bend ions +: ",
             row=0,
             voltage_channels=voltage_channels,
         )
 
-        self.bim_box = self._add_channel_combo(
+        self.bim_box = _add_channel_combo(
+            self.options_grid,
             label="Bend ions -: ",
             row=1,
             voltage_channels=voltage_channels,
@@ -134,12 +136,3 @@ class BenderControlBox(ChannelsControlBox):
             self.bim_box.currentIndexChanged
         )
 
-
-    def _add_channel_combo(self, label, row, voltage_channels):
-        self.options_grid.addWidget(QLabel(label), row, 0)
-        combo = QComboBox()
-        for vch in voltage_channels:
-            display_text = f"channel {vch.port} on {vch.type}"
-            combo.addItem(display_text, vch)
-        self.options_grid.addWidget(combo, row, 1)
-        return combo

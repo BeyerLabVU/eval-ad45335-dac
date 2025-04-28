@@ -1,36 +1,103 @@
+from typing import Callable
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QGroupBox, QComboBox, QLabel, QSlider, QHBoxLayout, QPushButton
 
 from control_box import *
+from helper import _add_channel_combo, bind_widget_to_state
+from eval_ad45335_dac.eval_ad45335_dac import Channel, StackDeflector
+
+from state import state
 from joystick import *
 
 class DeflectionControlBox(ChannelsControlBox):
-    def __init__(self, name: str, voltage_channels: list):
+    def __init__(self, name: str, state_object_getter: Callable[[], StackDeflector], voltage_channels: list):
         super().__init__(name, voltage_channels)
+        self.state = state
+        # self.options_grid.addWidget(QLabel("x+ ch: "), 0, 0)
+        # self.xp_box = QComboBox()
+        # self.xp_box.addItems([vch.name for vch in voltage_channels])
+        # self.options_grid.addWidget(self.xp_box, 0, 1)
 
-        self.options_grid.addWidget(QLabel("x+ ch: "), 0, 0)
-        self.xp_box = QComboBox()
-        self.xp_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.xp_box, 0, 1)
+        # self.options_grid.addWidget(QLabel("x- ch: "), 1, 0)
+        # self.xm_box = QComboBox()
+        # self.xm_box.addItems([vch.name for vch in voltage_channels])
+        # self.options_grid.addWidget(self.xm_box, 1, 1)
 
-        self.options_grid.addWidget(QLabel("x- ch: "), 1, 0)
-        self.xm_box = QComboBox()
-        self.xm_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.xm_box, 1, 1)
+        # self.options_grid.addWidget(QLabel("z+ ch: "), 2, 0)
+        # self.zp_box = QComboBox()
+        # self.zp_box.addItems([vch.name for vch in voltage_channels])
+        # self.options_grid.addWidget(self.zp_box, 2, 1)
 
-        self.options_grid.addWidget(QLabel("z+ ch: "), 2, 0)
-        self.zp_box = QComboBox()
-        self.zp_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.zp_box, 2, 1)
+        # self.options_grid.addWidget(QLabel("z- ch: "), 3, 0)
+        # self.zm_box = QComboBox()
+        # self.zm_box.addItems([vch.name for vch in voltage_channels])
+        # self.options_grid.addWidget(self.zm_box, 3, 1)
+        
+        self.xp_box = _add_channel_combo(
+            self.options_grid,
+            label="x+ ch: ",
+            row=0,
+            voltage_channels=voltage_channels,
+        )
+        
+        self.xm_box = _add_channel_combo(
+            self.options_grid,
+            label="x- ch: ",
+            row=1,
+            voltage_channels=voltage_channels,
+        )
+        
+        self.zp_box = _add_channel_combo(
+            self.options_grid,
+            label="z+ ch: ",
+            row=2,
+            voltage_channels=voltage_channels,
+        )
+        
+        self.zm_box = _add_channel_combo(
+            self.options_grid,
+            label="z- ch: ",
+            row=3,
+            voltage_channels=voltage_channels,
+        )
+    
+        
+        bind_widget_to_state(
+            self.xm_box.currentData,
+            lambda v: self.xm_box.setCurrentIndex(self.xm_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: state_object_getter().channels,
+            "x_minus_channel",
+            self.xm_box.currentIndexChanged
+        )
+        
+        bind_widget_to_state(
+            self.xp_box.currentData,
+            lambda v: self.xp_box.setCurrentIndex(self.xp_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: state_object_getter().channels,
+            "x_plus_channel",
+            self.xp_box.currentIndexChanged
+        )
+        
+        bind_widget_to_state(
+            self.zm_box.currentData,
+            lambda v: self.zm_box.setCurrentIndex(self.zm_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: state_object_getter().channels,
+            "z_minus_channel",
+            self.zm_box.currentIndexChanged
+        )
+        
+        bind_widget_to_state(
+            self.zp_box.currentData,
+            lambda v: self.zp_box.setCurrentIndex(self.zp_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: state_object_getter().channels,
+            "z_plus_channel",
+            self.zp_box.currentIndexChanged
+        )
 
-        self.options_grid.addWidget(QLabel("z- ch: "), 3, 0)
-        self.zm_box = QComboBox()
-        self.zm_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.zm_box, 3, 1)
 
 
 class DeflectionAngleWidget(QGroupBox):
-    def __init__(self, name: str, voltage_channels: list):
+    def __init__(self, name: str, state_object_getter : Callable[[], StackDeflector], voltage_channels: list):
         super().__init__("Deflection Angle")
         super().setMinimumHeight(350)
         super().setMaximumHeight(350)
@@ -38,7 +105,7 @@ class DeflectionAngleWidget(QGroupBox):
         super().setMaximumWidth(200)
 
         self.voltage_channels = voltage_channels
-        self.controlBox = DeflectionControlBox(name, self.voltage_channels)
+        self.controlBox = DeflectionControlBox(name, state_object_getter, self.voltage_channels)
 
         # Initialize pygame for joystick handling
         # pygame.init()
@@ -109,6 +176,36 @@ class DeflectionAngleWidget(QGroupBox):
         self.last_time = pygame.time.get_ticks()
         self.dead_zone = 0.2
         self.sensitivity = 1.0
+    
+          
+        bind_widget_to_state(
+            self.dead_zone_slider.value,
+            self.dead_zone_slider.setValue,
+            lambda: state_object_getter(),
+            "dead_zone",
+            self.dead_zone_slider.valueChanged
+        )
+        bind_widget_to_state(
+            self.sensitivity_slider.value,
+            self.sensitivity_slider.setValue,
+            lambda: state_object_getter(),
+            "sensitivity",
+            self.sensitivity_slider.valueChanged
+        )
+        bind_widget_to_state(
+            lambda: self.circle_widget.position_x,
+            self.circle_widget.set_position_x,
+            lambda: state_object_getter().deflection_setting,
+            "x",
+            self.circle_widget.xChanged
+        )
+        bind_widget_to_state(
+            lambda: self.circle_widget.position_y,
+            self.circle_widget.set_position_y,
+            lambda: state_object_getter().deflection_setting,
+            "z",
+            self.circle_widget.yChanged
+        )
 
     def adjust_sensitivity_slider(self, delta):
         """Adjust the sensitivity slider based on the mouse wheel."""

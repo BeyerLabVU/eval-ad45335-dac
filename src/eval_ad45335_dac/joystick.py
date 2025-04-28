@@ -9,10 +9,13 @@ import control_box
 class JoystickCircleWidget(QWidget):
     wheelScrolled = Signal(int)  # Signal to emit wheel delta changes
 
+    xChanged = Signal(float) # Signals for saving the state
+    yChanged = Signal(float)
     def __init__(self, outside_label):
         super().__init__()
         self.position_x = 0  # Current X position of the circle
         self.position_y = 0  # Current Y position of the circle
+        
         self.locked = False
         self.wheel_sensitivity = 10
         self.label = outside_label
@@ -39,8 +42,18 @@ class JoystickCircleWidget(QWidget):
         painter.setBrush(QColor("red"))
         painter.drawEllipse(scaled_x - 5, scaled_y - 5, 10, 10)
 
+    def set_position_x(self, x):
+        self.position_x = x
+        self.update()
+
+    def set_position_y(self, y):
+        self.position_y = y
+        self.update()
+        
     def update_position(self, dx, dy):
         if not self.locked:
+            old_x = self.position_x
+            old_y = self.position_y
             self.position_x += dx
             self.position_y += dy
             # Constrain the position to stay within the circle
@@ -52,7 +65,11 @@ class JoystickCircleWidget(QWidget):
                 self.position_y *= scale
             self.update()
             self.label.setText(f"Deflection Setting: ({self.position_x / self.radius:.3f}, {self.position_y / self.radius:.3f})")
-
+            if self.position_x != old_x:
+                self.xChanged.emit(self.position_x)
+            if self.position_y != old_y:
+                            self.yChanged.emit(self.position_y)
+                            
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             center_x = self.width() // 2
