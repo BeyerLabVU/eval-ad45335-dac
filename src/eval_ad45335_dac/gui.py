@@ -9,7 +9,7 @@ from bender import *
 from arduino_DAC_control import *
 from state import state
 
-from eval_ad45335_dac.eval_ad45335_dac import StoredConfigRequest, GetStoredConfigRequest
+from eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest
 
 
 class VoltageUpdateWorker(QObject):
@@ -64,7 +64,6 @@ class MainWidget(QWidget):
         self.update_thread = None
         self.update_worker = None
         self.is_updating = False
-        print("lets show!")
 
     def init_voltage_channels(self):
         self.voltage_channels = []
@@ -76,9 +75,9 @@ class MainWidget(QWidget):
         self.control_widgets = [
             # Need to make these state_objects getters with a lambda to ensure its not an old reference when we update state
             DeflectionAngleWidget("Pre-Stack Deflector", lambda: self.state.config.pre_stack_deflector, self.voltage_channels),
-            # FocusControlWidget("Stack Einzel", self.voltage_channels),
+            FocusControlWidget("Stack Einzel", lambda: self.state.config.stack_einzel, self.voltage_channels),
             DeflectionAngleWidget("Post-Stack Deflector", lambda: self.state.config.post_stack_deflector, self.voltage_channels),
-            # FocusControlWidget("Horz. Bender Einzel", self.voltage_channels),
+            FocusControlWidget("Horz. Bender Einzel", lambda: self.state.config.horizontal_bender_einzel, self.voltage_channels),
             BenderControlWidget("Quadrupole Bender", self.voltage_channels)
         ]
 
@@ -87,7 +86,7 @@ class MainWidget(QWidget):
 
         self.save_button = QPushButton("Save config")
         # Use a lambda to defer calling store_config until the button is actually clicked, instead of calling it immediately during setup.
-        self.save_button.clicked.connect(lambda: self.state.store_config(StoredConfigRequest("tryout")))
+        self.save_button.clicked.connect(lambda: self.state.store_config(StoreConfigRequest("tryout")))
 
         self.read_config_button = QPushButton("Read config")
         self.read_config_button.clicked.connect(lambda: self.read_config())
@@ -107,7 +106,7 @@ class MainWidget(QWidget):
         self.control_tab.setLayout(self.top_layout)
 
     def read_config(self):
-        self.state.get_config(GetStoredConfigRequest("96448ec1-cb80-48ec-8d04-88de139bc7d3"))
+        self.state.get_config(GetStoredConfigRequest("136b7d63-5e85-4b7e-a380-0e56f1dbf6b0"))
                 
 
     def start_voltage_update(self):

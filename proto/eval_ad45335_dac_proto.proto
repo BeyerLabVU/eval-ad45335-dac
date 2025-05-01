@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package eval_ad45335_dac;
+package eval_ad45335_dac_proto;
 
 // Implement your grpc proto file here.
 // Introduction to gRPC: https://grpc.io/docs/what-is-grpc/introduction/
@@ -68,9 +68,9 @@ message StoredConfig {
 
 message Config {
   StackDeflector pre_stack_deflector = 1;
-  StackEinzel stack_einzel = 2;
+  Einzel stack_einzel = 2;
   StackDeflector post_stack_deflector = 3;
-  HorizontalBenderEinzel horizontal_bender_einzel = 4;
+  Einzel horizontal_bender_einzel = 4;
   QuadrupoleBender quadrupole_bender = 5;
 }
 
@@ -87,12 +87,7 @@ message StackDeflector {
   bool locked = 5;
 }
 
-message StackEinzel {
-  int64 focus = 1;
-  Channel channel = 2;
-}
-
-message HorizontalBenderEinzel {
+message Einzel {
   int64 focus = 1;
   Channel channel = 2;
 }

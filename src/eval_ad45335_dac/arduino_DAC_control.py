@@ -5,7 +5,7 @@ import json
 
 from voltage_channel import VoltageChannel
 
-from eval_ad45335_dac.eval_ad45335_dac import ChannelType, Channel
+from eval_ad45335_dac_proto import ChannelType, Channel
 
 class arduinoAD45335():
     def __init__(self):
@@ -18,26 +18,28 @@ class arduinoAD45335():
             if 'Arduino' in p.description  # may need tweaking to match new arduinos
         ]
 
-        # if not arduino_ports:
-            # raise IOError("No Arduino found")
-        # if len(arduino_ports) > 1:
-        #     warnings.warn('Multiple Arduinos found - using the first')
+        if not arduino_ports:
+            raise IOError("No Arduino found")
+        if len(arduino_ports) > 1:
+            warnings.warn('Multiple Arduinos found - using the first')
 
-        # self.ser = serial.Serial(arduino_ports[0], baudrate=115200, timeout = 0.1)
-        # print("Connected to Arduino @", arduino_ports[0])
+        self.ser = serial.Serial(arduino_ports[0], baudrate=115200, timeout = 0.1)
+        print("Connected to Arduino @", arduino_ports[0])
         print("")
 
     def send_message(self, message: str):
         # print(message)
         try:
             self.ser.write(f"{message}\n".encode('utf-8'))
+            # print(f"{message}\n".encode('utf-8'))
         except Exception as e:
             print(e)
 
     def readback_binary(self):
         for _ in range(4):
+            # print("readback_binary")
             result = self.ser.readline().decode('utf-8')
-            # print(result[0:-1])
+            print(result[0:-1])
 
 class BipolarAD45335channel(VoltageChannel):
     def __init__(self, channel_number: int, arduino_interface: arduinoAD45335):
@@ -61,8 +63,7 @@ class DACControl():
     def set_voltage(self, voltage: float, channel: Channel):
         assert(abs(voltage) <= 100.0)
         assert((channel.port >= 0) and (channel.port < 32))
-        
-        
+                
         ## TODO: Make this use protobuf too instead of json? 
         command_contents = {"command": "SETV", "channel": channel.port, "voltage": voltage}
         msg = json.dumps(command_contents)
@@ -71,3 +72,4 @@ class DACControl():
             self.AD45335_interface.send_message(msg)
             self.AD45335_interface.readback_binary()
         
+dac = DACControl()

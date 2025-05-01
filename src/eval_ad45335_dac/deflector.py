@@ -4,8 +4,8 @@ from PySide6.QtWidgets import QGroupBox, QComboBox, QLabel, QSlider, QHBoxLayout
 
 from control_box import *
 from helper import _add_channel_combo, bind_widget_to_state
-from eval_ad45335_dac.eval_ad45335_dac import Channel, StackDeflector
-
+from eval_ad45335_dac_proto import Channel, StackDeflector
+from arduino_DAC_control import dac
 from state import state
 from joystick import *
 
@@ -13,26 +13,6 @@ class DeflectionControlBox(ChannelsControlBox):
     def __init__(self, name: str, state_object_getter: Callable[[], StackDeflector], voltage_channels: list):
         super().__init__(name, voltage_channels)
         self.state = state
-        # self.options_grid.addWidget(QLabel("x+ ch: "), 0, 0)
-        # self.xp_box = QComboBox()
-        # self.xp_box.addItems([vch.name for vch in voltage_channels])
-        # self.options_grid.addWidget(self.xp_box, 0, 1)
-
-        # self.options_grid.addWidget(QLabel("x- ch: "), 1, 0)
-        # self.xm_box = QComboBox()
-        # self.xm_box.addItems([vch.name for vch in voltage_channels])
-        # self.options_grid.addWidget(self.xm_box, 1, 1)
-
-        # self.options_grid.addWidget(QLabel("z+ ch: "), 2, 0)
-        # self.zp_box = QComboBox()
-        # self.zp_box.addItems([vch.name for vch in voltage_channels])
-        # self.options_grid.addWidget(self.zp_box, 2, 1)
-
-        # self.options_grid.addWidget(QLabel("z- ch: "), 3, 0)
-        # self.zm_box = QComboBox()
-        # self.zm_box.addItems([vch.name for vch in voltage_channels])
-        # self.options_grid.addWidget(self.zm_box, 3, 1)
-        
         self.xp_box = _add_channel_combo(
             self.options_grid,
             label="x+ ch: ",
@@ -280,10 +260,11 @@ class DeflectionAngleWidget(QGroupBox):
         zp_voltage =  100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
         zm_voltage = -100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
 
-        xp_ch.set_voltage(xp_voltage)
-        xm_ch.set_voltage(xm_voltage)
-        zp_ch.set_voltage(zp_voltage)
-        zm_ch.set_voltage(zm_voltage)
+        dac.set_voltage(voltage=xp_voltage, channel=xp_ch)
+        dac.set_voltage(xm_voltage, xm_ch)
+        dac.set_voltage(zp_voltage, zp_ch)
+        dac.set_voltage(zm_voltage, zm_ch)
+
 
     def closeEvent(self, event):
         # Clean up pygame resources

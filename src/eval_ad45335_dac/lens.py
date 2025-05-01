@@ -1,19 +1,24 @@
+from typing import Callable
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
 
 from control_box import ChannelsControlBox
-from voltage_channel import VoltageChannel
+from eval_ad45335_dac_proto import Einzel
+from helper import bind_widget_to_state, _add_channel_combo
+from state import state
+from arduino_DAC_control import dac
 
 class FocusControlWidget(QGroupBox):
-    def __init__(self, name: str, voltage_channels: list):
+    def __init__(self, name: str, state_object_getter: Callable[[], Einzel], voltage_channels: list):
         super().__init__("Focusing")
         super().setMinimumHeight(350)
         super().setMaximumHeight(350)
         super().setMinimumWidth(100)
         super().setMaximumWidth(100)
 
+        self.state = state
         self.voltage_channels = voltage_channels
-        self.controlBox = FocusControlBox(name, voltage_channels)
+        self.controlBox = FocusControlBox(name, state_object_getter, voltage_channels)
 
         self.slider = QSlider(Qt.Vertical)
         self.slider.setMinimum(0)
@@ -62,6 +67,15 @@ class FocusControlWidget(QGroupBox):
         self.layout.addStretch(1)
         self.layout.addWidget(self.lock_button)
         self.setLayout(self.layout)
+        
+        bind_widget_to_state(
+            self.slider.value,
+            self.slider.setValue,
+            lambda: state_object_getter(),
+            "focus",
+            self.slider.valueChanged
+        )
+ 
 
     def update_label(self, value):
         if not self.locked:
@@ -81,14 +95,30 @@ class FocusControlWidget(QGroupBox):
     def update_voltages(self):
         focus_ch = self.voltage_channels[self.controlBox.focus_box.currentIndex()]
         focus_voltage =  100.0 * (float(self.slider.sliderPosition()) / 999.0)
-        focus_ch.set_voltage(focus_voltage)
+        dac.set_voltage(focus_voltage, focus_ch)
 
 
 class FocusControlBox(ChannelsControlBox):
-    def __init__(self, name: str, voltage_channels: list):
+    def __init__(self, name: str, state_object_getter: Callable[[], Einzel], voltage_channels: list):
         super().__init__(name, voltage_channels)
-
-        self.options_grid.addWidget(QLabel("focus ch: "), 0, 0)
-        self.focus_box = QComboBox()
-        self.focus_box.addItems([vch.name for vch in voltage_channels])
-        self.options_grid.addWidget(self.focus_box, 0, 1)
+        self.state = state
+        
+        self.focus_box = _add_channel_combo(
+            self.options_grid,
+            label="focus ch: ",
+            row=1,
+            voltage_channels=voltage_channels,
+        )
+        
+        
+        bind_widget_to_state(
+            self.focus_box.currentData,
+            lambda v: self.focus_box.setCurrentIndex(self.focus_box.findText(f"channel {v.port} on {v.type}")),
+            lambda: state_object_getter(),
+            "channel",
+            self.focus_box.currentIndexChanged
+        )
+        # self.options_grid.addWidget(QLabel("focus ch: "), 0, 0)
+        # self.focus_box = QComboBox()
+        # self.focus_box.addItems([vch.name for vch in voltage_channels])
+        # self.options_grid.addWidget(self.focus_box, 0, 1)

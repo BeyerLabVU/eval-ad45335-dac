@@ -6,8 +6,8 @@ import signal
 import time
 import uuid
 from grpclib.server import Server
-from eval_ad45335_dac.eval_ad45335_dac import DacBase, Voltage, VoltageReply, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
-from eval_ad45335_dac.eval_ad45335_dac import StoredConfigRequest, GetStoredConfigRequest
+from eval_ad45335_dac.test.tmp.eval_ad45335_dacimport DacBase, Voltage, VoltageReply, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
+from eval_ad45335_dac.test.tmp.eval_ad45335_dacimport StoreConfigRequest, GetStoredConfigRequest
 import tomllib
 
 import sys
@@ -42,7 +42,7 @@ class DacService(DacBase):
         self.state.config = message
         return ConfigReply(success=True, message="Complete configuration updated successfully")
     
-    async def store_config(self, message: StoredConfigRequest) -> StoredConfig:
+    async def store_config(self, message: StoreConfigRequest) -> StoredConfig:
         # time.time() returns the current unix epoch as a float, where the part after the decimal point is smaller than a second.
         # We multiply by 1e3 to get the current unix millisecond epoch as integer
         ts = int(time.time()  * 1e3)

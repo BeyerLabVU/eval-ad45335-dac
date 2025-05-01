@@ -1,6 +1,6 @@
-from eval_ad45335_dac.eval_ad45335_dac import Config, QuadrupoleBender, QuadrupoleBenderChannels, Channel
-from eval_ad45335_dac.eval_ad45335_dac import StackDeflector, StackEinzel, DeflectionSetting, DeflectorChannels
-from eval_ad45335_dac.eval_ad45335_dac import HorizontalBenderEinzel, StoredConfigRequest, StoredConfig, GetStoredConfigRequest
+from eval_ad45335_dac_proto import Config, QuadrupoleBender, QuadrupoleBenderChannels, Channel
+from eval_ad45335_dac_proto import StackDeflector, Einzel, DeflectionSetting, DeflectorChannels
+from eval_ad45335_dac_proto import StoreConfigRequest, StoredConfig, GetStoredConfigRequest
 import os
 import time
 import uuid
@@ -17,12 +17,12 @@ class State(QObject):
           DeflectionSetting(),
           DeflectorChannels()
         ),
-        stack_einzel=StackEinzel(channel=Channel()),
+        stack_einzel=Einzel(channel=Channel()),
         post_stack_deflector=StackDeflector(
           DeflectionSetting(),
           DeflectorChannels()
         ),
-        horizontal_bender_einzel=HorizontalBenderEinzel(channel=Channel()),
+        horizontal_bender_einzel=Einzel(channel=Channel()),
         quadrupole_bender=QuadrupoleBender(
           channels=QuadrupoleBenderChannels(
             bend_ions_minus_channel=Channel(),
@@ -31,7 +31,7 @@ class State(QObject):
         )
       )
       
-    def store_config(self, message: StoredConfigRequest) -> StoredConfig:
+    def store_config(self, message: StoreConfigRequest) -> StoredConfig:
         # time.time() returns the current unix epoch as a float, where the part after the decimal point is smaller than a second.
         # We multiply by 1e3 to get the current unix millisecond epoch as integer
         ts = int(time.time()  * 1e3)

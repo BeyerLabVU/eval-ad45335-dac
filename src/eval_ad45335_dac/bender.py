@@ -4,8 +4,8 @@ from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayo
 from control_box import ChannelsControlBox
 from helper import _add_channel_combo, bind_widget_to_state
 from voltage_channel import VoltageChannel
-from eval_ad45335_dac.eval_ad45335_dac import Channel
-
+from eval_ad45335_dac_proto import Channel
+from arduino_DAC_control import dac
 from state import state
 class BenderControlWidget(QGroupBox):
     def __init__(self, name: str, voltage_channels: list):
@@ -95,11 +95,11 @@ class BenderControlWidget(QGroupBox):
     def update_voltages(self):
         bip_ch = self.voltage_channels[self.controlBox.bip_box.currentIndex()]
         bip_voltage =  100.0 * (float(self.slider.sliderPosition()) / 999.0)
-        bip_ch.set_voltage(bip_voltage)
+        dac.set_voltage(bip_voltage, bip_ch)
 
         bim_ch = self.voltage_channels[self.controlBox.bim_box.currentIndex()]
         bim_voltage = -100.0 * (float(self.slider.sliderPosition()) / 999.0)
-        bim_ch.set_voltage(bim_voltage)
+        dac.set_voltage(bim_voltage, bim_ch)
         
 
 
