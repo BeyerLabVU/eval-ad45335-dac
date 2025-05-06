@@ -9,8 +9,10 @@ from lens import *
 from bender import *
 from arduino_DAC_control import *
 from state import state
-# from server import main
-from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest, StoredConfig
+# from`` server import main
+from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest
+from eval_ad45335_dac.eval_ad45335_dac_proto import StoredConfig, Config, QuadrupoleBender, QuadrupoleBenderChannels, Channel
+
 from h2pcontrol.h2pcontrol_connector import H2PControl
 
 from eval_ad45335_dac.eval_ad45335_dac_proto import DacStub, Empty, StoredConfigsReply
@@ -32,7 +34,9 @@ class VoltageUpdateWorker(QObject):
         try: 
             for widget in self.control_widgets:
                 widget.update_voltages()
-            await self.dac_server.update_voltages(state.config)
+
+            await self.dac_server.update_voltages(message=state.config)
+
         except Exception as e:
             print(f"Error during voltage update: {e}")
         finally:
@@ -44,13 +48,11 @@ class MainWidget(QWidget):
         super().__init__()
         
         # Setup h2pcontrol connection
-        self.h2pcontroller = H2PControl("localhost:50051")
+        self.h2pcontroller = H2PControl("127.0.0.1:50051")
         self.dac_server = None
         self.setup_connection()
     
-        
-        self.DACControl = DACControl()
-
+    
         self.init_voltage_channels()
 
         self.tab_widget = QTabWidget()
@@ -86,7 +88,11 @@ class MainWidget(QWidget):
     @asyncSlot()
     async def setup_connection(self):
         await self.h2pcontroller.connect()
-        _, self.dac_server = await self.h2pcontroller.register_server(self.h2pcontroller.servers.eval_ad45335_dac_proto, DacStub)
+        # print(self.h2pcontroller.servers)
+        print(self.h2pcontroller.servers.list_servers())
+        for server in self.h2pcontroller.servers.list_servers():
+            print(server)
+        _, self.dac_server = await self.h2pcontroller.register_server(self.h2pcontroller.servers.eval_ad45335_dac, DacStub)
         
         self.setup_config_dropdown()
 

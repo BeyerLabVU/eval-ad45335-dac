@@ -90,8 +90,8 @@ class BenderControlWidget(QGroupBox):
             self.slider.setValue(value)
 
     def update_voltages(self):
-        state.config.quadrupole_bender.channels.bend_ions_plus_channel = 100.0 * (float(self.slider.sliderPosition()) / 999.0)
-        state.config.quadrupole_bender.channels.bend_ions_minus_channel = -100.0 * (float(self.slider.sliderPosition()) / 999.0)
+        state.config.quadrupole_bender.channels.bend_ions_plus_channel.voltage = 100.0 * (float(self.slider.sliderPosition()) / 999.0)
+        state.config.quadrupole_bender.channels.bend_ions_minus_channel.voltage = -100.0 * (float(self.slider.sliderPosition()) / 999.0)
 
         # bip_ch = self.voltage_channels[self.controlBox.bip_box.currentIndex()]
         # bip_voltage =  100.0 * (float(self.slider.sliderPosition()) / 999.0)

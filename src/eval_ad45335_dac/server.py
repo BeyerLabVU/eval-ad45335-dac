@@ -1,14 +1,15 @@
 import asyncio
 import logging
 import os
+import platform
 import signal
 import time
 import uuid
 from grpclib.server import Server
 from eval_ad45335_dac.eval_ad45335_dac_proto import DacBase, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
 from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest, Empty, StoredConfigsReply
-import tomllib
-from arduino_DAC_control import dac
+# import tomllib
+from arduino_DAC_control import DACControl
 
 # from deflector import *
 # from lens import *
@@ -17,7 +18,12 @@ from arduino_DAC_control import dac
 # from gui import *
 from state import state
 
+IS_WINDOWS = platform.system() == 'Windows'
+
 class DacService(DacBase):    
+    def __init__(self):
+        self.dac = DACControl()
+
     async def send_channel_config(self, message: ChannelConfig) -> ChannelConfigReply:
         logger.info("Received channel configuration")
         logger.info(message)
@@ -77,30 +83,31 @@ class DacService(DacBase):
             return StoredConfigsReply()
         
         
-    async def update_voltages(self, message) -> Empty:
+    async def update_voltages(self, message: Config) -> Empty:
+        logger.info("Updating voltages")
         state.config = message
         
         if state.config.horizontal_bender_einzel != None:
-            dac.set_voltage(state.config.horizontal_bender_einzel.channel)
+            self.dac.set_voltage(state.config.horizontal_bender_einzel.channel)
         
         if state.config.post_stack_deflector != None:
-            dac.set_voltage(state.config.post_stack_deflector.channels.x_minus_channel)
-            dac.set_voltage(state.config.post_stack_deflector.channels.x_plus_channel)
-            dac.set_voltage(state.config.post_stack_deflector.channels.z_minus_channel)
-            dac.set_voltage(state.config.post_stack_deflector.channels.z_plus_channel)
+            self.dac.set_voltage(state.config.post_stack_deflector.channels.x_minus_channel)
+            self.dac.set_voltage(state.config.post_stack_deflector.channels.x_plus_channel)
+            self.dac.set_voltage(state.config.post_stack_deflector.channels.z_minus_channel)
+            self.dac.set_voltage(state.config.post_stack_deflector.channels.z_plus_channel)
         
         if state.config.pre_stack_deflector != None:
-            dac.set_voltage(state.config.pre_stack_deflector.channels.x_minus_channel)
-            dac.set_voltage(state.config.pre_stack_deflector.channels.x_plus_channel)
-            dac.set_voltage(state.config.pre_stack_deflector.channels.z_minus_channel)
-            dac.set_voltage(state.config.pre_stack_deflector.channels.z_plus_channel)
+            self.dac.set_voltage(state.config.pre_stack_deflector.channels.x_minus_channel)
+            self.dac.set_voltage(state.config.pre_stack_deflector.channels.x_plus_channel)
+            self.dac.set_voltage(state.config.pre_stack_deflector.channels.z_minus_channel)
+            self.dac.set_voltage(state.config.pre_stack_deflector.channels.z_plus_channel)
         
         if state.config.quadrupole_bender != None:
-            dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_minus_channel)
-            dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_plus_channel)    
+            self.dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_minus_channel)
+            self.dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_plus_channel)    
         
         if state.config.stack_einzel != None:
-            dac.set_voltage(state.config.stack_einzel.channel)
+            self.dac.set_voltage(state.config.stack_einzel.channel)
     
         return Empty()
     
@@ -110,11 +117,11 @@ async def main():
     server = Server([DacService()])
     
     # We gather the port from the h2pcontrol.server.toml file by default, if we can not get that port we take a default port.
-    port = configuration.get("port", 50052)
-    await server.start("localhost", port)
+    # port = configuration.get("port", 50052)
+    port = 50056
+    await server.start("127.0.0.1", port)
     
-    logger.info(f"Server started on localhost:{port}")
-
+    logger.info(f"Server started on 127.0.0.1:{port}")
     # Use an asyncio Event to wait for shutdown signal
     should_stop = asyncio.Event()
     
@@ -124,8 +131,9 @@ async def main():
         should_stop.set()
 
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, _signal_handler)
+    if not IS_WINDOWS:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, _signal_handler)
 
     await should_stop.wait()
     logger.info("Shutting down server...")
@@ -142,10 +150,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Read configuration from TOML ---
-with open("h2pcontrol.server.toml", "rb") as f:
-    config = tomllib.load(f)
-configuration = config.get("configuration", {})
+# with open("h2pcontrol.server.toml", "rb") as f:
+#     config = tomllib.load(f)
+# configuration = config.get("configuration", {})
 
 if __name__ == '__main__':
+    if IS_WINDOWS:
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+    else:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        # loop.run_until_complete(main())
     asyncio.run(main())
-    

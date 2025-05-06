@@ -151,7 +151,7 @@ class DeflectionAngleWidget(QGroupBox):
         self.timer.timeout.connect(self.poll_joystick)
         self.timer.start(16)  # ~60 FPS
 
-        self.last_time = pygame.time.get_ticks()
+        # self.last_time = pygame.time.get_ticks()
         self.dead_zone = 0.2
         self.sensitivity = 1.0
     
