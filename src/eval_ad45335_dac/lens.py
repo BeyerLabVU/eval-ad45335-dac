@@ -16,6 +16,7 @@ class FocusControlWidget(QGroupBox):
         super().setMinimumWidth(100)
         super().setMaximumWidth(100)
 
+        self.state_object_getter = state_object_getter
         self.voltage_channels = voltage_channels
         self.controlBox = FocusControlBox(name, state_object_getter, voltage_channels)
 
@@ -91,10 +92,10 @@ class FocusControlWidget(QGroupBox):
         if not self.locked:
             self.slider.setValue(value)
 
-    def update_voltages(self):
-        focus_ch = self.voltage_channels[self.controlBox.focus_box.currentIndex()]
-        focus_voltage =  100.0 * (float(self.slider.sliderPosition()) / 999.0)
-        dac.set_voltage(focus_voltage, focus_ch)
+    def update_voltages(self):     
+        einzel = self.state_object_getter()
+        einzel.channel.voltage = 100.0 * (float(self.slider.sliderPosition()) / 999.0)
+
 
 
 class FocusControlBox(ChannelsControlBox):

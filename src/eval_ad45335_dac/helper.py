@@ -5,7 +5,6 @@ def bind_widget_to_state(get_widget_value, set_widget_value, state_obj_getter, s
     # Update state when widget changes
     def on_widget_change(*args):
         setattr(state_obj_getter(), state_attr, get_widget_value())        
-        print(state_obj_getter(), getattr(state_obj_getter(), state_attr))
     signal.connect(on_widget_change)
 
     # Update widget when state changes (if you have a state-changed signal)

@@ -9,9 +9,10 @@ package eval_ad45335_dac_proto;
 
 service DAC {
   rpc GetAllStoredConfigs(Empty) returns (StoredConfigsReply) {}
-  rpc SendCompleteConfig (Config) returns (ConfigReply) {}
+  rpc SendConfig (Config) returns (ConfigReply) {}
   rpc StoreConfig(StoreConfigRequest) returns (StoredConfig) {}
   rpc GetConfig(GetStoredConfigRequest) returns (StoredConfig) {}
+  rpc UpdateVoltages(Config) returns (Empty) {}
 }
 
 message Empty {}

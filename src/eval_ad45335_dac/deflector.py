@@ -82,7 +82,8 @@ class DeflectionAngleWidget(QGroupBox):
         super().setMaximumHeight(350)
         super().setMinimumWidth(200)
         super().setMaximumWidth(200)
-
+        
+        self.state_object_getter = state_object_getter
         self.voltage_channels = voltage_channels
         self.controlBox = DeflectionControlBox(name, state_object_getter, self.voltage_channels)
 
@@ -249,20 +250,12 @@ class DeflectionAngleWidget(QGroupBox):
             main_widget.trigger_control.set_trigger_value(normalized_trigger)
 
     def update_voltages(self):
-        xp_ch = self.voltage_channels[self.controlBox.xp_box.currentIndex()]
-        xm_ch = self.voltage_channels[self.controlBox.xm_box.currentIndex()]
-        zp_ch = self.voltage_channels[self.controlBox.zp_box.currentIndex()]
-        zm_ch = self.voltage_channels[self.controlBox.zm_box.currentIndex()]
-
-        xp_voltage =  100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
-        xm_voltage = -100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
-        zp_voltage =  100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
-        zm_voltage = -100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
-
-        dac.set_voltage(voltage=xp_voltage, channel=xp_ch)
-        dac.set_voltage(xm_voltage, xm_ch)
-        dac.set_voltage(zp_voltage, zp_ch)
-        dac.set_voltage(zm_voltage, zm_ch)
+        stack_deflector: StackDeflector = self.state_object_getter()
+        
+        stack_deflector.channels.x_minus_channel.voltage = 100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
+        stack_deflector.channels.x_plus_channel.voltage = -100.0 * (self.circle_widget.position_x / self.circle_widget.radius)
+        stack_deflector.channels.z_minus_channel.voltage = 100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
+        stack_deflector.channels.z_plus_channel.voltage = -100.0 * (self.circle_widget.position_y / self.circle_widget.radius)
 
 
     def closeEvent(self, event):

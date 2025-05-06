@@ -20,16 +20,25 @@ from eval_ad45335_dac.eval_ad45335_dac_proto import DacStub, Empty, StoredConfig
 class VoltageUpdateWorker(QObject):
     update_finished = Signal()
 
-    def __init__(self, control_widgets):
+    def __init__(self, control_widgets, dac_server: DacStub):
+        self.dac_server = dac_server
         super().__init__()
         self.control_widgets = control_widgets
 
+
     def run(self):
-        # print("\nUpdating voltages:")
-        for widget in self.control_widgets:
-            widget.update_voltages()
-        # print("Voltage update finished!")
-        self.update_finished.emit()
+        asyncio.create_task(self._async_run())
+
+    async def _async_run(self):
+        try: 
+            for widget in self.control_widgets:
+                widget.update_voltages()
+            await self.dac_server.update_voltages(state.config)
+        except Exception as e:
+            print(f"Error during voltage update: {e}")
+        finally:
+            self.update_finished.emit()
+        
 
 class MainWidget(QWidget):
     def  __init__(self):
@@ -102,7 +111,6 @@ class MainWidget(QWidget):
         self.update_button = QPushButton("Update Voltages")
         self.update_button.clicked.connect(self.start_voltage_update)
 
-
         # Saving
         self.save_layout = QHBoxLayout()
         self.save_name_input = QLineEdit()
@@ -113,7 +121,6 @@ class MainWidget(QWidget):
 
         self.save_layout.addWidget(self.save_button)
         self.save_layout.addWidget(self.save_name_input)
-    
 
         # Reading
         self.read_layout = QHBoxLayout()
@@ -138,7 +145,6 @@ class MainWidget(QWidget):
         self.top_layout.addLayout(self.save_layout)
     
         self.top_layout.addLayout(self.read_layout)
-
         self.top_layout.addStretch(1)
         
         self.control_tab.setLayout(self.top_layout)
@@ -166,20 +172,26 @@ class MainWidget(QWidget):
             return  # Avoid starting a new thread while one is running
 
         self.is_updating = True
-
-        # Initialize the worker and thread
-        self.update_worker = VoltageUpdateWorker(self.control_widgets)
-        self.update_thread = QThread()
-        self.update_worker.moveToThread(self.update_thread)
-
-        # Connect signals and slots
-        self.update_thread.started.connect(self.update_worker.run)
-        self.update_worker.update_finished.connect(self.update_thread.quit)
-        self.update_worker.update_finished.connect(self.update_worker.deleteLater)
+        self.update_worker = VoltageUpdateWorker(self.control_widgets, self.dac_server)
         self.update_worker.update_finished.connect(self.finish_voltage_update)
-        self.update_thread.finished.connect(self.update_thread.deleteLater)
+        self.update_worker.update_finished.connect(self.update_worker.deleteLater)
+        
+        self.update_worker.run()
+        
+        # # Start the async operation
+        # # Initialize the worker and thread
+        # self.update_worker = VoltageUpdateWorker(self.control_widgets, self.dac_server)
+        # self.update_thread = QThread()
+        # self.update_worker.moveToThread(self.update_thread)
 
-        self.update_thread.start()
+        # # Connect signals and slots
+        # self.update_thread.started.connect(self.update_worker.run)
+        # self.update_worker.update_finished.connect(self.update_thread.quit)
+        # self.update_worker.update_finished.connect(self.update_worker.deleteLater)
+        # self.update_worker.update_finished.connect(self.finish_voltage_update)
+        # self.update_thread.finished.connect(self.update_thread.deleteLater)
+
+        # self.update_thread.start()
 
     def finish_voltage_update(self):
         self.is_updating = False

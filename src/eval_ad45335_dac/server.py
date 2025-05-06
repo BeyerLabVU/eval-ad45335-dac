@@ -8,6 +8,7 @@ from grpclib.server import Server
 from eval_ad45335_dac.eval_ad45335_dac_proto import DacBase, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
 from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest, Empty, StoredConfigsReply
 import tomllib
+from arduino_DAC_control import dac
 
 # from deflector import *
 # from lens import *
@@ -74,6 +75,34 @@ class DacService(DacBase):
         except FileNotFoundError:
             logger.warning("File not found!")
             return StoredConfigsReply()
+        
+        
+    async def update_voltages(self, message) -> Empty:
+        state.config = message
+        
+        if state.config.horizontal_bender_einzel != None:
+            dac.set_voltage(state.config.horizontal_bender_einzel.channel)
+        
+        if state.config.post_stack_deflector != None:
+            dac.set_voltage(state.config.post_stack_deflector.channels.x_minus_channel)
+            dac.set_voltage(state.config.post_stack_deflector.channels.x_plus_channel)
+            dac.set_voltage(state.config.post_stack_deflector.channels.z_minus_channel)
+            dac.set_voltage(state.config.post_stack_deflector.channels.z_plus_channel)
+        
+        if state.config.pre_stack_deflector != None:
+            dac.set_voltage(state.config.pre_stack_deflector.channels.x_minus_channel)
+            dac.set_voltage(state.config.pre_stack_deflector.channels.x_plus_channel)
+            dac.set_voltage(state.config.pre_stack_deflector.channels.z_minus_channel)
+            dac.set_voltage(state.config.pre_stack_deflector.channels.z_plus_channel)
+        
+        if state.config.quadrupole_bender != None:
+            dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_minus_channel)
+            dac.set_voltage(state.config.quadrupole_bender.channels.bend_ions_plus_channel)    
+        
+        if state.config.stack_einzel != None:
+            dac.set_voltage(state.config.stack_einzel.channel)
+    
+        return Empty()
     
 
 async def main():
