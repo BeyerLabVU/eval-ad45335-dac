@@ -1,11 +1,9 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
+from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QSpacerItem
 
 from control_box import ChannelsControlBox
 from helper import _add_channel_combo, bind_widget_to_state
-from voltage_channel import VoltageChannel
 from eval_ad45335_dac.eval_ad45335_dac_proto import Channel
-from arduino_DAC_control import dac
 from state import state
 class BenderControlWidget(QGroupBox):
     def __init__(self, name: str, voltage_channels: list):

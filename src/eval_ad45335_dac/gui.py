@@ -1,8 +1,7 @@
 import asyncio
 import sys
-from PySide6.QtCore import QTimer, QObject, QThread, Signal
-from PySide6.QtGui import QPainter, QColor, QPen
-from PySide6.QtWidgets import QVBoxLayout, QLabel, QWidget, QLineEdit, QPushButton, QHBoxLayout, QGroupBox, QSpacerItem, QSizePolicy, QTabWidget, QGridLayout, QComboBox, QScrollArea, QFormLayout
+from PySide6.QtCore import QTimer, QObject, Signal
+from PySide6.QtWidgets import QVBoxLayout, QLabel, QWidget, QLineEdit, QPushButton, QHBoxLayout, QTabWidget, QComboBox, QScrollArea, QFormLayout
 from qasync import QApplication, QEventLoop, asyncSlot
 
 from deflector import *

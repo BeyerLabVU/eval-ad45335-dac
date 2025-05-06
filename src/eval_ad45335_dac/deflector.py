@@ -1,12 +1,10 @@
 from typing import Callable
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QGroupBox, QComboBox, QLabel, QSlider, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QGroupBox, QLabel, QSlider, QHBoxLayout, QPushButton
 
 from control_box import *
 from helper import _add_channel_combo, bind_widget_to_state
-from eval_ad45335_dac.eval_ad45335_dac_proto import Channel, StackDeflector
-from arduino_DAC_control import dac
-from state import state
+from eval_ad45335_dac.eval_ad45335_dac_proto import StackDeflector
 from joystick import *
 
 class DeflectionControlBox(ChannelsControlBox):

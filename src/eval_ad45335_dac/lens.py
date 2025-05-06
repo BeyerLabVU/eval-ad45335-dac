@@ -1,12 +1,10 @@
 from typing import Callable
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
+from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QSpacerItem
 
 from control_box import ChannelsControlBox
 from eval_ad45335_dac.eval_ad45335_dac_proto import Einzel
 from helper import bind_widget_to_state, _add_channel_combo
-from state import state
-from arduino_DAC_control import dac
 
 class FocusControlWidget(QGroupBox):
     def __init__(self, name: str, state_object_getter: Callable[[], Einzel], voltage_channels: list):

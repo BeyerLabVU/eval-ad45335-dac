@@ -1,10 +1,7 @@
-import pygame
-import warnings
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter, QColor, QPen
 from PySide6.QtWidgets import QWidget
 
-import control_box
 
 class JoystickCircleWidget(QWidget):
     wheelScrolled = Signal(int)  # Signal to emit wheel delta changes

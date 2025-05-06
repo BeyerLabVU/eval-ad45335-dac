@@ -19,12 +19,12 @@ from state import state
 
 class DacService(DacBase):    
     async def send_channel_config(self, message: ChannelConfig) -> ChannelConfigReply:
-        logger.info(f"Received channel configuration")
+        logger.info("Received channel configuration")
         logger.info(message)
         return ChannelConfigReply(success=True, message="Channel configuration updated successfully")
     
     async def send_complete_config(self, message: Config) -> ConfigReply:
-        logger.info(f"Received complete configuration")
+        logger.info("Received complete configuration")
         logger.info(message)
         state.config = message
         print(state.config)

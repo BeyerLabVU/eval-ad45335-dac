@@ -1,12 +1,10 @@
-import warnings
-import serial
-import serial.tools.list_ports
-from time import sleep
 import json
 
-from voltage_channel import VoltageChannel
+import serial
+import serial.tools.list_ports
 
-from eval_ad45335_dac.eval_ad45335_dac_proto import ChannelType, Channel
+from eval_ad45335_dac.eval_ad45335_dac_proto import Channel, ChannelType
+
 
 class arduinoAD45335():
     def __init__(self):
