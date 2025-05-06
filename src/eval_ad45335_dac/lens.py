@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayout, QSizePolicy, QComboBox, QSpacerItem
 
 from control_box import ChannelsControlBox
-from eval_ad45335_dac_proto import Einzel
+from eval_ad45335_dac.eval_ad45335_dac_proto import Einzel
 from helper import bind_widget_to_state, _add_channel_combo
 from state import state
 from arduino_DAC_control import dac
@@ -16,7 +16,6 @@ class FocusControlWidget(QGroupBox):
         super().setMinimumWidth(100)
         super().setMaximumWidth(100)
 
-        self.state = state
         self.voltage_channels = voltage_channels
         self.controlBox = FocusControlBox(name, state_object_getter, voltage_channels)
 
@@ -101,7 +100,6 @@ class FocusControlWidget(QGroupBox):
 class FocusControlBox(ChannelsControlBox):
     def __init__(self, name: str, state_object_getter: Callable[[], Einzel], voltage_channels: list):
         super().__init__(name, voltage_channels)
-        self.state = state
         
         self.focus_box = _add_channel_combo(
             self.options_grid,

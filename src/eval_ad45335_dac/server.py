@@ -1,45 +1,33 @@
 import asyncio
-import datetime
 import logging
 import os
 import signal
 import time
 import uuid
 from grpclib.server import Server
-from eval_ad45335_dac.test.tmp.eval_ad45335_dacimport DacBase, Voltage, VoltageReply, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
-from eval_ad45335_dac.test.tmp.eval_ad45335_dacimport StoreConfigRequest, GetStoredConfigRequest
+from eval_ad45335_dac.eval_ad45335_dac_proto import DacBase, StoredConfig, ChannelConfig, ChannelConfigReply, Config, ConfigReply
+from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest, Empty, StoredConfigsReply
 import tomllib
 
-import sys
-from PySide6.QtCore import QTimer, QObject, QThread, Signal
-from PySide6.QtGui import QPainter, QColor, QPen
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QLabel, QWidget, QSlider, QPushButton, QHBoxLayout, QGroupBox, QSpacerItem, QSizePolicy, QTabWidget, QGridLayout, QComboBox, QScrollArea, QFormLayout
-
-from deflector import *
-from lens import *
-from bender import *
-from arduino_DAC_control import *
-from gui import *
-from state import State, state
+# from deflector import *
+# from lens import *
+# from bender import *
+# from arduino_DAC_control import *
+# from gui import *
+from state import state
 
 class DacService(DacBase):    
-    def __init__(self):
-        self.state = state
-
-    
-    async def send_voltage(self, message: Voltage) -> VoltageReply:
-        response = VoltageReply(wattage=message.voltage * 2)
-        return response
-    
     async def send_channel_config(self, message: ChannelConfig) -> ChannelConfigReply:
         logger.info(f"Received channel configuration")
-        logger.info(message.pre_stack_deflector_channels.x_minus_channel.type)
+        logger.info(message)
         return ChannelConfigReply(success=True, message="Channel configuration updated successfully")
     
     async def send_complete_config(self, message: Config) -> ConfigReply:
         logger.info(f"Received complete configuration")
         logger.info(message)
-        self.state.config = message
+        state.config = message
+        print(state.config)
+        state.state_changed.emit()
         return ConfigReply(success=True, message="Complete configuration updated successfully")
     
     async def store_config(self, message: StoreConfigRequest) -> StoredConfig:
@@ -51,7 +39,7 @@ class DacService(DacBase):
             timestamp=ts,
             name=message.name,
             uuid=str(uuid.uuid4()),
-            config=self.state.config
+            config=message.config
         )
         
         # ensure there is a /stored_configs folder:
@@ -70,7 +58,22 @@ class DacService(DacBase):
             config = StoredConfig.parse(config, data=f.read())
         
         return config
-       
+    
+    
+    async def get_all_stored_configs(self, message: Empty) -> StoredConfigsReply:
+        config_dir = "stored_configs"
+        config_list = StoredConfigsReply()
+        try:
+            for filename in os.listdir(config_dir):
+                if not os.path.isfile(os.path.join(config_dir, filename)):
+                    continue
+                with open(f"stored_configs/{filename}", "rb") as f:
+                    stored_config = StoredConfig.parse(StoredConfig(), data=f.read())
+                    config_list.configs.append(stored_config)
+            return config_list
+        except FileNotFoundError:
+            logger.warning("File not found!")
+            return StoredConfigsReply()
     
 
 async def main():

@@ -5,28 +5,28 @@ package eval_ad45335_dac_proto;
 // Implement your grpc proto file here.
 // Introduction to gRPC: https://grpc.io/docs/what-is-grpc/introduction/
 
+
+
 service DAC {
-  rpc SendVoltage (Voltage) returns (VoltageReply) {}
-  rpc SendChannelConfig (ChannelConfig) returns (ChannelConfigReply) {}
+  rpc GetAllStoredConfigs(Empty) returns (StoredConfigsReply) {}
   rpc SendCompleteConfig (Config) returns (ConfigReply) {}
   rpc StoreConfig(StoreConfigRequest) returns (StoredConfig) {}
   rpc GetConfig(GetStoredConfigRequest) returns (StoredConfig) {}
 }
 
+message Empty {}
+
+message StoredConfigsReply {
+  repeated StoredConfig configs  = 1;
+}
+
 message StoreConfigRequest {
   string name = 1;
+  Config config = 2;
 }
 
 message GetStoredConfigRequest {
   string uuid = 1;
-}
-
-message Voltage {
-  double voltage = 1;
-}
-
-message VoltageReply {
-  double wattage = 1;
 }
 
 message ChannelConfig {
@@ -100,6 +100,7 @@ message QuadrupoleBender {
 message Channel {
   int32 port = 1;
   ChannelType type = 2;
+  double voltage = 3;
 }
 
 enum ChannelType {

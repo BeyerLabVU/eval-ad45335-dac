@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QGroupBox, QComboBox, QLabel, QSlider, QHBoxLayout
 
 from control_box import *
 from helper import _add_channel_combo, bind_widget_to_state
-from eval_ad45335_dac_proto import Channel, StackDeflector
+from eval_ad45335_dac.eval_ad45335_dac_proto import Channel, StackDeflector
 from arduino_DAC_control import dac
 from state import state
 from joystick import *
@@ -12,7 +12,6 @@ from joystick import *
 class DeflectionControlBox(ChannelsControlBox):
     def __init__(self, name: str, state_object_getter: Callable[[], StackDeflector], voltage_channels: list):
         super().__init__(name, voltage_channels)
-        self.state = state
         self.xp_box = _add_channel_combo(
             self.options_grid,
             label="x+ ch: ",

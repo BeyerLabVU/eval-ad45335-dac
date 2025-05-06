@@ -1,15 +1,20 @@
+import asyncio
 import sys
 from PySide6.QtCore import QTimer, QObject, QThread, Signal
 from PySide6.QtGui import QPainter, QColor, QPen
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QLabel, QWidget, QSlider, QPushButton, QHBoxLayout, QGroupBox, QSpacerItem, QSizePolicy, QTabWidget, QGridLayout, QComboBox, QScrollArea, QFormLayout
+from PySide6.QtWidgets import QVBoxLayout, QLabel, QWidget, QLineEdit, QPushButton, QHBoxLayout, QGroupBox, QSpacerItem, QSizePolicy, QTabWidget, QGridLayout, QComboBox, QScrollArea, QFormLayout
+from qasync import QApplication, QEventLoop, asyncSlot
 
 from deflector import *
 from lens import *
 from bender import *
 from arduino_DAC_control import *
 from state import state
+# from server import main
+from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest, StoredConfig
+from h2pcontrol.h2pcontrol_connector import H2PControl
 
-from eval_ad45335_dac_proto import StoreConfigRequest, GetStoredConfigRequest
+from eval_ad45335_dac.eval_ad45335_dac_proto import DacStub, Empty, StoredConfigsReply
 
 
 class VoltageUpdateWorker(QObject):
@@ -27,10 +32,15 @@ class VoltageUpdateWorker(QObject):
         self.update_finished.emit()
 
 class MainWidget(QWidget):
-    def __init__(self):
+    def  __init__(self):
         super().__init__()
-
-        self.state = state
+        
+        # Setup h2pcontrol connection
+        self.h2pcontroller = H2PControl("localhost:50051")
+        self.dac_server = None
+        self.setup_connection()
+    
+        
         self.DACControl = DACControl()
 
         self.init_voltage_channels()
@@ -65,6 +75,14 @@ class MainWidget(QWidget):
         self.update_worker = None
         self.is_updating = False
 
+    @asyncSlot()
+    async def setup_connection(self):
+        await self.h2pcontroller.connect()
+        _, self.dac_server = await self.h2pcontroller.register_server(self.h2pcontroller.servers.eval_ad45335_dac_proto, DacStub)
+        
+        self.setup_config_dropdown()
+
+        
     def init_voltage_channels(self):
         self.voltage_channels = []
         for ch in range(32):
@@ -74,23 +92,41 @@ class MainWidget(QWidget):
         """Setup the first tab with main control widgets."""
         self.control_widgets = [
             # Need to make these state_objects getters with a lambda to ensure its not an old reference when we update state
-            DeflectionAngleWidget("Pre-Stack Deflector", lambda: self.state.config.pre_stack_deflector, self.voltage_channels),
-            FocusControlWidget("Stack Einzel", lambda: self.state.config.stack_einzel, self.voltage_channels),
-            DeflectionAngleWidget("Post-Stack Deflector", lambda: self.state.config.post_stack_deflector, self.voltage_channels),
-            FocusControlWidget("Horz. Bender Einzel", lambda: self.state.config.horizontal_bender_einzel, self.voltage_channels),
+            DeflectionAngleWidget("Pre-Stack Deflector", lambda: state.config.pre_stack_deflector, self.voltage_channels),
+            FocusControlWidget("Stack Einzel", lambda: state.config.stack_einzel, self.voltage_channels),
+            DeflectionAngleWidget("Post-Stack Deflector", lambda: state.config.post_stack_deflector, self.voltage_channels),
+            FocusControlWidget("Horz. Bender Einzel", lambda: state.config.horizontal_bender_einzel, self.voltage_channels),
             BenderControlWidget("Quadrupole Bender", self.voltage_channels)
         ]
 
         self.update_button = QPushButton("Update Voltages")
         self.update_button.clicked.connect(self.start_voltage_update)
 
-        self.save_button = QPushButton("Save config")
-        # Use a lambda to defer calling store_config until the button is actually clicked, instead of calling it immediately during setup.
-        self.save_button.clicked.connect(lambda: self.state.store_config(StoreConfigRequest("tryout")))
 
+        # Saving
+        self.save_layout = QHBoxLayout()
+        self.save_name_input = QLineEdit()
+        self.save_name_input.setPlaceholderText("Enter config name")
+        
+        self.save_button = QPushButton("Save config")
+        self.save_button.clicked.connect(lambda: self.save_config(name = self.save_name_input.text()))
+
+        self.save_layout.addWidget(self.save_button)
+        self.save_layout.addWidget(self.save_name_input)
+    
+
+        # Reading
+        self.read_layout = QHBoxLayout()
         self.read_config_button = QPushButton("Read config")
         self.read_config_button.clicked.connect(lambda: self.read_config())
 
+        self.config_label = QLabel("Stored configurations")
+        self.config_combo = QComboBox()
+        
+        self.read_layout.addWidget(self.config_label)
+        self.read_layout.addWidget(self.config_combo)
+        self.read_layout.addWidget(self.read_config_button)
+        
         self.top_layout = QVBoxLayout()
 
         layout = QHBoxLayout()
@@ -99,15 +135,31 @@ class MainWidget(QWidget):
 
         self.top_layout.addLayout(layout)
         self.top_layout.addWidget(self.update_button)
-        self.top_layout.addWidget(self.save_button)
-        self.top_layout.addWidget(self.read_config_button)
+        self.top_layout.addLayout(self.save_layout)
+    
+        self.top_layout.addLayout(self.read_layout)
 
         self.top_layout.addStretch(1)
+        
         self.control_tab.setLayout(self.top_layout)
+        
 
-    def read_config(self):
-        self.state.get_config(GetStoredConfigRequest("136b7d63-5e85-4b7e-a380-0e56f1dbf6b0"))
-                
+    @asyncSlot()
+    async def setup_config_dropdown(self):
+        stored_configs: StoredConfigsReply = await self.dac_server.get_all_stored_configs(Empty())
+        self.config_combo.clear()
+        for config in stored_configs.configs:
+            self.config_combo.addItem(config.name, config.uuid)
+
+    @asyncSlot()
+    async def read_config(self):
+        config: StoredConfig = await self.dac_server.get_config(message=GetStoredConfigRequest(self.config_combo.currentData()))
+        state.set_config(config)
+        
+    @asyncSlot()
+    async def save_config(self, name: str):     
+        await self.dac_server.store_config(StoreConfigRequest(name=name, config=state.config))
+        await self.setup_config_dropdown()
 
     def start_voltage_update(self):
         if self.is_updating:
@@ -137,10 +189,16 @@ class MainWidget(QWidget):
         for widget in self.control_widgets:
             self.channel_layout.addRow(widget.controlBox)
 
-
+        
 if __name__ == '__main__':
 
+    # Setup the event loop for async calls to api!
     app = QApplication(sys.argv)
+    loop = QEventLoop(app)
+    asyncio.set_event_loop(loop)
+
     main_widget = MainWidget()
     main_widget.show()
-    sys.exit(app.exec())
+    
+    with loop:
+        loop.run_forever()

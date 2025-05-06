@@ -1,6 +1,6 @@
-from eval_ad45335_dac_proto import Config, QuadrupoleBender, QuadrupoleBenderChannels, Channel
-from eval_ad45335_dac_proto import StackDeflector, Einzel, DeflectionSetting, DeflectorChannels
-from eval_ad45335_dac_proto import StoreConfigRequest, StoredConfig, GetStoredConfigRequest
+from eval_ad45335_dac.eval_ad45335_dac_proto import Config, QuadrupoleBender, QuadrupoleBenderChannels, Channel
+from eval_ad45335_dac.eval_ad45335_dac_proto import StackDeflector, Einzel, DeflectionSetting, DeflectorChannels
+from eval_ad45335_dac.eval_ad45335_dac_proto import StoreConfigRequest, StoredConfig, GetStoredConfigRequest
 import os
 import time
 import uuid
@@ -53,6 +53,10 @@ class State(QObject):
         
         # print(stored_config)
         return stored_config
+      
+    def set_config(self, message: StoredConfig):
+      self.config = message.config
+      self.state_changed.emit()
       
     def get_config(self, message: GetStoredConfigRequest) -> StoredConfig:
       stored_config = StoredConfig()

@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QGroupBox, QSlider, QLabel, QPushButton, QVBoxLayo
 from control_box import ChannelsControlBox
 from helper import _add_channel_combo, bind_widget_to_state
 from voltage_channel import VoltageChannel
-from eval_ad45335_dac_proto import Channel
+from eval_ad45335_dac.eval_ad45335_dac_proto import Channel
 from arduino_DAC_control import dac
 from state import state
 class BenderControlWidget(QGroupBox):
@@ -15,7 +15,6 @@ class BenderControlWidget(QGroupBox):
         super().setMinimumWidth(100)
         super().setMaximumWidth(100)
         
-        self.state = state
 
         self.voltage_channels = voltage_channels
         self.controlBox = BenderControlBox(name, voltage_channels)
@@ -71,7 +70,7 @@ class BenderControlWidget(QGroupBox):
         bind_widget_to_state(
             self.slider.value,
             self.slider.setValue,
-            lambda: self.state.config.quadrupole_bender,
+            lambda: state.config.quadrupole_bender,
             "bend",
             self.slider.valueChanged
         )
@@ -106,7 +105,6 @@ class BenderControlWidget(QGroupBox):
 class BenderControlBox(ChannelsControlBox):
     def __init__(self, name: str, voltage_channels: list[Channel]):
         super().__init__(name, voltage_channels)
-        self.state = state
         self.bip_box = _add_channel_combo(
             self.options_grid,
             label="Bend ions +: ",
@@ -124,14 +122,14 @@ class BenderControlBox(ChannelsControlBox):
         bind_widget_to_state(
             self.bip_box.currentData,
             lambda v: self.bip_box.setCurrentIndex(self.bip_box.findText(f"channel {v.port} on {v.type}")),
-            lambda: self.state.config.quadrupole_bender.channels,
+            lambda: state.config.quadrupole_bender.channels,
             "bend_ions_plus_channel",
             self.bip_box.currentIndexChanged
         )
         bind_widget_to_state(
             self.bim_box.currentData,
             lambda v: self.bim_box.setCurrentIndex(self.bim_box.findText(f"channel {v.port} on {v.type}")),
-            lambda: self.state.config.quadrupole_bender.channels,
+            lambda: state.config.quadrupole_bender.channels,
             "bend_ions_minus_channel",
             self.bim_box.currentIndexChanged
         )
